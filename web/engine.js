@@ -10,73 +10,26 @@
     !isNode && typeof document !== "undefined" && document.currentScript
       ? document.currentScript.src
       : null;
+  const PapaLib = isNode ? require("./lib/papaparse.min.js") : globalObject.Papa;
 
   let rules = null;
   let departments = null;
 
   function parseCsv(text) {
-    const rows = [];
-    let row = [];
-    let field = "";
-    let inQuotes = false;
-
-    for (let index = 0; index < text.length; index += 1) {
-      const char = text[index];
-      const next = text[index + 1];
-
-      if (inQuotes) {
-        if (char === '"' && next === '"') {
-          field += '"';
-          index += 1;
-        } else if (char === '"') {
-          inQuotes = false;
-        } else {
-          field += char;
-        }
-      } else if (char === '"') {
-        inQuotes = true;
-      } else if (char === ",") {
-        row.push(field);
-        field = "";
-      } else if (char === "\n") {
-        row.push(field.replace(/\r$/, ""));
-        rows.push(row);
-        row = [];
-        field = "";
-      } else {
-        field += char;
-      }
-    }
-
-    if (inQuotes) {
-      throw new Error("CSV의 따옴표가 닫히지 않았습니다.");
-    }
-    if (field.length > 0 || row.length > 0) {
-      row.push(field.replace(/\r$/, ""));
-      rows.push(row);
-    }
-
-    const nonEmptyRows = rows.filter((values) =>
-      values.some((value) => value.trim() !== ""),
-    );
-    if (nonEmptyRows.length === 0) {
-      return [];
-    }
-
-    const headers = nonEmptyRows[0].map((header, index) =>
-      (index === 0 ? header.replace(/^\uFEFF/, "") : header).trim(),
-    );
-
-    return nonEmptyRows.slice(1).map((values, rowIndex) => {
-      if (values.length !== headers.length) {
-        throw new Error(
-          `CSV ${rowIndex + 2}행의 열 수가 다릅니다: ${values.length}/${headers.length}`,
-        );
-      }
-      return Object.fromEntries(
-        headers.map((header, index) => [header, values[index].trim()]),
-      );
+    if (!PapaLib) throw new Error("Papa Parse를 불러오지 못했습니다.");
+    const result = PapaLib.parse(String(text ?? "").replace(/^\uFEFF/, ""), {
+      delimiter: ",",
+      header: true,
+      skipEmptyLines: "greedy",
+      transformHeader: (header) => header.trim(),
+      transform: (value) => String(value ?? "").trim(),
     });
+    if (result.errors.length) {
+      const error = result.errors[0];
+      const row = Number.isInteger(error.row) ? ` ${error.row + 2}행` : "";
+      throw new Error(`CSV${row}을 읽지 못했습니다: ${error.message}`);
+    }
+    return result.data;
   }
 
   function requireColumns(rows, columns, label) {

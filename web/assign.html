@@ -4,6 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>요구서 접수·배분 | A부</title>
+  <link href="lib/tabulator.min.css" rel="stylesheet">
+  <script src="lib/papaparse.min.js"></script>
+  <script src="lib/xlsx.full.min.js"></script>
+  <script src="lib/tabulator.min.js"></script>
+  <script src="flow.js"></script>
   <script src="common.js"></script>
   <script src="split.js"></script>
   <script src="engine.js"></script>
@@ -12,10 +17,11 @@
     .workflow{display:grid;gap:22px}.section-card{overflow:hidden}.section-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 24px;border-bottom:1px solid #e2e8f0}.section-title-wrap{display:flex;align-items:center;gap:13px}.section-number{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#15345a;color:#fff;font-weight:900}.section-head h2{margin:0;font-size:19px}.section-head p{margin:4px 0 0;color:#64748b;font-size:13px}.section-body{padding:22px 24px}
     .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.upload-box{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:118px;padding:20px;border:1px dashed #adc1d8;border-radius:15px;background:#f8fbff;transition:border-color .2s,background .2s}.upload-box:hover{border-color:#246bce;background:#f0f6ff}.upload-copy strong{display:block;margin-bottom:5px}.upload-copy span{color:#64748b;font-size:12px;line-height:1.5}.file-input{position:absolute;width:1px;height:1px;opacity:0}.file-label{display:inline-flex;align-items:center;justify-content:center;min-width:104px;min-height:40px;padding:0 14px;border:1px solid #c3d2e3;border-radius:10px;background:#fff;color:#15345a;font-weight:800;cursor:pointer}
     .progress-wrap{display:none;margin-top:14px}.progress-wrap.show{display:block}.progress-line{height:7px;overflow:hidden;border-radius:999px;background:#e7edf5}.progress-bar{width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#246bce,#39a7d8);transition:width .25s}.progress-text{margin-top:7px;color:#64748b;font-size:12px}
-    .preview-tools{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px}.preview-meta{display:flex;gap:8px;flex-wrap:wrap}.table-wrap{overflow:auto;margin-top:14px;border:1px solid #dbe4ee;border-radius:14px}.table-wrap.preview{max-height:310px}.data-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}.data-table th{position:sticky;top:0;z-index:2;padding:11px 12px;background:#edf3fa;color:#40536a;text-align:left;white-space:nowrap}.data-table td{padding:12px;border-top:1px solid #e5ebf2;vertical-align:top}.data-table tbody tr:hover{background:#f9fbfe}.empty-cell{padding:34px!important;color:#8090a3;text-align:center}
+    .preview-tools{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px}.preview-meta{display:flex;gap:8px;flex-wrap:wrap}.preview-table{margin-top:14px;border:1px solid #dbe4ee;border-radius:14px;overflow:hidden}.tabulator{border:0;background:#fff;font-size:13px}.tabulator .tabulator-header{border-bottom:1px solid #dbe4ee;background:#edf3fa;color:#40536a}.tabulator .tabulator-header .tabulator-col{background:#edf3fa}.tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover{background:#e3edf8}.tabulator .tabulator-row{border-bottom:1px solid #e5ebf2}.tabulator .tabulator-row:hover{background:#f9fbfe}.tabulator .tabulator-cell{padding:10px 12px;white-space:normal}.tabulator .tabulator-placeholder{color:#8090a3}.tabulator .tabulator-header-filter input{padding:6px 8px;border:1px solid #cbd8e7;border-radius:7px;background:#fff}.table-wrap{overflow:auto;margin-top:14px;border:1px solid #dbe4ee;border-radius:14px}.data-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}.data-table th{position:sticky;top:0;z-index:2;padding:11px 12px;background:#edf3fa;color:#40536a;text-align:left;white-space:nowrap}.data-table td{padding:12px;border-top:1px solid #e5ebf2;vertical-align:top}.data-table tbody tr:hover{background:#f9fbfe}.empty-cell{padding:34px!important;color:#8090a3;text-align:center}
     .verification{display:grid;gap:6px;margin-top:12px}.verify-item{display:flex;align-items:center;gap:8px;color:#52657b;font-size:12px}.verify-dot{width:8px;height:8px;border-radius:50%;background:#21a174}.verify-item.fail .verify-dot{background:#c74353}
-    .allocation-tools{display:flex;align-items:center;gap:12px}.search{width:min(320px,100%);min-height:40px;padding:0 13px;border:1px solid #cbd8e7;border-radius:10px;background:#fff}.allocation-wrap{max-height:70vh}.allocation-table{min-width:1320px}.allocation-table th:nth-child(1){width:92px}.allocation-table th:nth-child(2){width:135px}.allocation-table th:nth-child(3){width:330px}.allocation-table th:nth-child(4){width:245px}.allocation-table th:nth-child(5){width:185px}.allocation-table th:nth-child(6){width:170px}.allocation-table th:nth-child(7){width:120px}
+    .allocation-tools{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}.search{width:min(320px,100%);min-height:40px;padding:0 13px;border:1px solid #cbd8e7;border-radius:10px;background:#fff}.allocation-wrap{max-height:70vh}.allocation-table{min-width:1320px}.allocation-table th:nth-child(1){width:92px}.allocation-table th:nth-child(2){width:135px}.allocation-table th:nth-child(3){width:330px}.allocation-table th:nth-child(4){width:245px}.allocation-table th:nth-child(5){width:185px}.allocation-table th:nth-child(6){width:170px}.allocation-table th:nth-child(7){width:120px}
     .request-title{font-weight:800;line-height:1.5}.request-sub{margin-top:5px;color:#75869a;font-size:11px;line-height:1.45}.candidate-list{display:grid;gap:6px}.candidate{display:grid;grid-template-columns:20px 1fr auto;gap:7px;align-items:center;padding:7px 8px;border-radius:9px;background:#f2f6fb}.candidate b{display:grid;place-items:center;width:20px;height:20px;border-radius:7px;background:#dce9f8;color:#205fae;font-size:10px}.candidate span{font-weight:800}.candidate small{color:#6d7e92}.no-candidate{color:#b06b13;font-weight:800}.department-select{width:100%;min-height:39px;padding:0 9px;border:1px solid #cbd8e7;border-radius:9px;background:#fff}
+    .history-box{margin-top:9px;padding:9px 10px;border:1px solid #d8e5f2;border-radius:10px;background:#f8fbff;color:#52657b;font-size:11px}.history-box summary{cursor:pointer;font-weight:800;color:#31577f}.history-box ul{display:grid;gap:5px;margin:8px 0 0;padding-left:18px;line-height:1.45}.history-box .none{display:block;margin-top:5px;color:#7c8997}.reassign-note{margin-top:9px;padding:9px 10px;border-left:3px solid #d88a1c;border-radius:8px;background:#fff8e8;color:#76501d;font-size:11px;line-height:1.5}.reassign-note strong{display:block;margin-bottom:2px;color:#985d0b}
     .assist-picker{position:relative}.assist-picker summary{padding:9px 10px;border:1px solid #cbd8e7;border-radius:9px;background:#fff;cursor:pointer;list-style:none;font-weight:700}.assist-picker summary::-webkit-details-marker{display:none}.assist-menu{position:absolute;right:0;z-index:8;width:250px;max-height:260px;overflow:auto;margin-top:5px;padding:8px;border:1px solid #cbd8e7;border-radius:12px;background:#fff;box-shadow:0 16px 35px rgba(28,54,89,.18)}.assist-option{display:flex;align-items:center;gap:8px;padding:7px;border-radius:8px}.assist-option:hover{background:#eef4fb}.confirm-button{width:100%;min-height:38px;padding:0 10px;border:0;border-radius:9px;background:#15345a;color:#fff;font-weight:800;cursor:pointer}.confirm-button.confirmed{background:#187255}.method{display:block;margin-top:5px;color:#728398;font-size:10px;text-align:center}.status-badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#fff4dc;color:#98590d;font-size:11px;font-weight:900}.status-badge.done{background:#e8f7f1;color:#157052}
     @media(max-width:900px){.header-row{align-items:flex-start;flex-direction:column}.upload-grid{grid-template-columns:1fr}.section-body{padding:16px}.section-head{padding:18px}.upload-box{align-items:flex-start;flex-direction:column}}
   </style>
@@ -30,21 +36,21 @@
 
     <div class="workflow">
       <section class="card section-card" data-reveal>
-        <header class="section-head"><div class="section-title-wrap"><span class="section-number">1</span><div><h2>접수</h2><p>PDF 여러 개 또는 기존 문항목록 CSV를 불러옵니다.</p></div></div><span class="pill" id="engine-status">자료 읽는 중</span></header>
+        <header class="section-head"><div class="section-title-wrap"><span class="section-number">1</span><div><h2>접수</h2><p>PDF 여러 개 또는 기존 문항목록 CSV·엑셀을 불러옵니다.</p></div></div><span class="pill" id="engine-status">자료 읽는 중</span></header>
         <div class="section-body">
           <div class="upload-grid">
             <label class="upload-box" for="pdf-files"><span class="upload-copy"><strong>자료요구서 PDF</strong><span>여러 파일 선택 · 문항 수와 번호 연속성 자동 확인</span></span><span class="file-label">PDF 선택</span><input class="file-input" id="pdf-files" type="file" accept="application/pdf,.pdf" multiple></label>
-            <label class="upload-box" for="csv-file"><span class="upload-copy"><strong>문항목록 CSV</strong><span>split.py와 같은 8개 열의 UTF-8 CSV</span></span><span class="file-label">CSV 선택</span><input class="file-input" id="csv-file" type="file" accept=".csv,text/csv"></label>
+            <label class="upload-box" for="data-file"><span class="upload-copy"><strong>문항목록 CSV·엑셀</strong><span>같은 8개 열의 CSV, XLSX 또는 XLS 파일</span></span><span class="file-label">파일 선택</span><input class="file-input" id="data-file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"></label>
           </div>
           <div class="progress-wrap" id="progress-wrap"><div class="progress-line"><div class="progress-bar" id="progress-bar"></div></div><div class="progress-text" id="progress-text"></div></div>
           <div class="preview-tools"><div class="preview-meta"><span class="pill" id="preview-count">대기 중</span><span class="pill green" id="preview-files">파일 0건</span></div><button class="button" data-ripple id="register-button" disabled>접수 등록</button></div>
           <div class="verification" id="verification"></div>
-          <div class="table-wrap preview"><table class="data-table"><thead><tr><th>파일명</th><th>위원회·의원</th><th>기한</th><th>번호</th><th>요구내용</th></tr></thead><tbody id="preview-body"><tr><td class="empty-cell" colspan="5">PDF 또는 CSV를 선택해 주세요.</td></tr></tbody></table></div>
+          <div id="preview-table" class="preview-table" aria-label="접수 문항 미리보기 표"></div>
         </div>
       </section>
 
       <section class="card section-card" data-reveal>
-        <header class="section-head"><div class="section-title-wrap"><span class="section-number">2</span><div><h2>배분</h2><p>1순위 후보가 기본값이며, 총괄 담당자가 최종 결정합니다.</p></div></div><div class="allocation-tools"><input class="search" id="search" type="search" placeholder="의원·문항·요구내용 검색"></div></header>
+        <header class="section-head"><div class="section-title-wrap"><span class="section-number">2</span><div><h2>배분</h2><p>1순위 후보가 기본값이며, 총괄 담당자가 최종 결정합니다.</p></div></div><div class="allocation-tools"><input class="search" id="search" type="search" placeholder="유사 문구까지 검색"><button class="button secondary" id="export-button" type="button" disabled>접수대장 엑셀 내보내기</button></div></header>
         <div class="section-body">
           <div class="table-wrap allocation-wrap"><table class="data-table allocation-table"><thead><tr><th>상태</th><th>의원·문항</th><th>요구내용</th><th>후보 3순위</th><th>주관 과</th><th>협조 과</th><th>확정</th></tr></thead><tbody id="allocation-body"><tr><td class="empty-cell" colspan="7">접수 등록된 문항이 없습니다.</td></tr></tbody></table></div>
         </div>
@@ -54,16 +60,17 @@
 
   <script type="module">
     import * as pdfjsLib from "./lib/pdf.min.mjs";
+    import Fuse from "./lib/fuse.min.mjs";
     pdfjsLib.GlobalWorkerOptions.workerSrc = "./lib/pdf.worker.min.mjs";
 
     AppCommon.injectBaseStyles();
     document.querySelector("#nav").innerHTML = AppCommon.nav("assign");
 
     const pdfInput = document.querySelector("#pdf-files");
-    const csvInput = document.querySelector("#csv-file");
-    const previewBody = document.querySelector("#preview-body");
+    const dataInput = document.querySelector("#data-file");
     const allocationBody = document.querySelector("#allocation-body");
     const registerButton = document.querySelector("#register-button");
+    const exportButton = document.querySelector("#export-button");
     const progressWrap = document.querySelector("#progress-wrap");
     const progressBar = document.querySelector("#progress-bar");
     const progressText = document.querySelector("#progress-text");
@@ -73,6 +80,20 @@
     let previewChecks = [];
     let departments = [];
     let engineReady = false;
+    const previewTable = new Tabulator("#preview-table", {
+      data: [],
+      height: "310px",
+      layout: "fitDataStretch",
+      placeholder: "PDF 또는 CSV·엑셀 파일을 선택해 주세요.",
+      columns: [
+        { title: "파일명", field: "파일명", width: 210, headerFilter: "input" },
+        { title: "위원회", field: "위원회", width: 165, headerFilter: "input" },
+        { title: "의원", field: "의원", width: 105, headerFilter: "input" },
+        { title: "기한", field: "제출기한", width: 120, sorter: "string" },
+        { title: "번호", field: "문항번호", width: 80, hozAlign: "center", sorter: "number" },
+        { title: "요구내용", field: "요구내용", minWidth: 360, headerFilter: "input", variableHeight: true },
+      ],
+    });
 
     function setProgress(current, total, label) {
       progressWrap.classList.add("show");
@@ -117,17 +138,14 @@
       document.querySelector("#preview-files").textContent = `파일 ${new Set(previewRows.map(row => row.파일명)).size}건`;
       registerButton.disabled = !previewRows.length || !engineReady || previewChecks.some(item => !item.일치);
       verification.innerHTML = previewChecks.map(item => `<div class="verify-item ${item.일치 ? "" : "fail"}"><span class="verify-dot"></span><span>${AppCommon.escapeHtml(item.파일명)} · 파일명 ${item.파일명의문항수 ?? "-"} / 추출 ${item.뽑은문항수} / 마지막 ${item.마지막번호 ?? "-"} / 연속 ${item.번호연속 ? "O" : "X"} / 일치 ${item.일치 ? "O" : "X"}</span></div>`).join("");
-      if (!previewRows.length) {
-        previewBody.innerHTML = '<tr><td class="empty-cell" colspan="5">PDF 또는 CSV를 선택해 주세요.</td></tr>';
-        return;
-      }
-      previewBody.innerHTML = previewRows.map(row => `<tr><td>${AppCommon.escapeHtml(row.파일명)}</td><td><strong>${AppCommon.escapeHtml(row.위원회)}</strong><br>${AppCommon.escapeHtml(row.의원)}</td><td>${AppCommon.escapeHtml(row.제출기한)}</td><td>${AppCommon.escapeHtml(row.문항번호)}</td><td>${AppCommon.escapeHtml(row.요구내용)}</td></tr>`).join("");
+      previewTable.setData(previewRows);
     }
 
     function updateStats(cases) {
       document.querySelector("#stat-total").textContent = cases.length;
       document.querySelector("#stat-confirmed").textContent = cases.filter(item => item.상태 === "배분확정").length;
       document.querySelector("#stat-waiting").textContent = cases.filter(item => item.상태 === "접수").length;
+      exportButton.disabled = !cases.length;
     }
 
     function candidateHtml(candidates) {
@@ -135,22 +153,49 @@
       return `<div class="candidate-list">${candidates.map((item, index) => `<div class="candidate"><b>${index + 1}</b><span>${AppCommon.escapeHtml(item.과)}</span><small>${item.점수} · ${AppCommon.escapeHtml(item.근거키워드)}</small></div>`).join("")}</div>`;
     }
 
+    function historyHtml(item) {
+      const history = AppCommon.pastHistoryFor(item);
+      if (!history.keyword) return '<div class="history-box"><strong>과거 이력</strong><span class="none">1순위 근거 키워드가 없어 검색하지 않았습니다.</span></div>';
+      const summary = history.count
+        ? `${history.count}건 · 주로 ${AppCommon.escapeHtml(history.mainDepartment || "확인필요")}`
+        : "0건";
+      const recent = history.recent.length
+        ? `<ul>${history.recent.map(row => `<li>${AppCommon.escapeHtml(row.접수일)} · ${AppCommon.escapeHtml(row.요구내용)} → ${AppCommon.escapeHtml(row.배분과)}</li>`).join("")}</ul>`
+        : '<span class="none">같은 근거 키워드가 든 과거 요구가 없습니다.</span>';
+      return `<details class="history-box"><summary>과거 이력 · ${AppCommon.escapeHtml(history.keyword)} · ${summary}</summary>${recent}</details>`;
+    }
+
+    function reassignmentHtml(item) {
+      if (item.상태 !== "재배정요청" || !item.재배정?.length) return "";
+      const latest = item.재배정[item.재배정.length - 1];
+      return `<div class="reassign-note"><strong>${AppCommon.escapeHtml(latest.과)} 재배정 요청</strong>${AppCommon.escapeHtml(latest.사유)}${latest.희망과 ? ` · 희망 과: ${AppCommon.escapeHtml(latest.희망과)}` : ""}</div>`;
+    }
+
     function departmentOptions(selected) {
       return `<option value="">선택</option>${departments.map(item => `<option value="${AppCommon.escapeHtml(item)}" ${item === selected ? "selected" : ""}>${AppCommon.escapeHtml(item)}</option>`).join("")}`;
     }
 
     function renderCases() {
-      const term = search.value.trim().toLocaleLowerCase("ko-KR");
+      const term = search.value.trim();
       const cases = AppCommon.loadCases();
       updateStats(cases);
-      const filtered = cases.filter(item => !term || `${item.의원} ${item.문항번호} ${item.요구내용}`.toLocaleLowerCase("ko-KR").includes(term));
+      const filtered = term
+        ? new Fuse(cases, {
+            keys: ["의원", "문항번호", "요구내용", "세부항목", "비고", "주관과", "협조과"],
+            threshold: 0.35,
+            ignoreLocation: true,
+            minMatchCharLength: 1,
+          }).search(term).map(result => result.item)
+        : cases;
       if (!filtered.length) {
         allocationBody.innerHTML = `<tr><td class="empty-cell" colspan="7">${cases.length ? "검색 결과가 없습니다." : "접수 등록된 문항이 없습니다."}</td></tr>`;
         return;
       }
       allocationBody.innerHTML = filtered.map(item => {
         const done = item.상태 === "배분확정";
-        return `<tr data-id="${AppCommon.escapeHtml(item.id)}"><td><span class="status-badge ${done ? "done" : ""}">${AppCommon.escapeHtml(item.상태)}</span></td><td><strong>${AppCommon.escapeHtml(item.의원)}</strong><br>${AppCommon.escapeHtml(item.문항번호)}번</td><td><div class="request-title">${AppCommon.escapeHtml(item.요구내용)}</div>${item.세부항목 || item.비고 ? `<div class="request-sub">${AppCommon.escapeHtml([item.세부항목, item.비고].filter(Boolean).join(" · "))}</div>` : ""}</td><td>${candidateHtml(item.후보)}</td><td><select class="department-select lead-select">${departmentOptions(item.주관과 || item.후보?.[0]?.과 || "")}</select></td><td><details class="assist-picker"><summary>${item.협조과?.length ? `${item.협조과.length}개 선택` : "선택 없음"}</summary><div class="assist-menu" data-loaded="false"></div></details></td><td><button class="confirm-button ${done ? "confirmed" : ""}" data-ripple>${done ? "수정 확정" : "배분 확정"}</button>${item.확정방법 ? `<span class="method">${AppCommon.escapeHtml(item.확정방법)}</span>` : ""}</td></tr>`;
+        const reassigning = item.상태 === "재배정요청";
+        const assignable = ["접수", "재배정요청", "배분확정"].includes(item.상태);
+        return `<tr data-id="${AppCommon.escapeHtml(item.id)}"><td><span class="status-badge ${done ? "done" : ""}">${AppCommon.escapeHtml(item.상태)}</span></td><td><strong>${AppCommon.escapeHtml(item.의원)}</strong><br>${AppCommon.escapeHtml(item.문항번호)}번</td><td><div class="request-title">${AppCommon.escapeHtml(item.요구내용)}</div>${item.세부항목 || item.비고 ? `<div class="request-sub">${AppCommon.escapeHtml([item.세부항목, item.비고].filter(Boolean).join(" · "))}</div>` : ""}${reassignmentHtml(item)}${historyHtml(item)}</td><td>${candidateHtml(item.후보)}</td><td><select class="department-select lead-select" ${assignable ? "" : "disabled"}>${departmentOptions(item.주관과 || item.후보?.[0]?.과 || "")}</select></td><td><details class="assist-picker"><summary>${item.협조과?.length ? `${item.협조과.length}개 선택` : "선택 없음"}</summary><div class="assist-menu" data-loaded="false"></div></details></td><td><button class="confirm-button ${done ? "confirmed" : ""}" data-ripple ${assignable ? "" : "disabled"}>${reassigning ? "다시 배분" : done ? "수정 확정" : "배분 완료"}</button>${item.확정방법 ? `<span class="method">${AppCommon.escapeHtml(item.확정방법)}</span>` : ""}</td></tr>`;
       }).join("");
     }
 
@@ -177,26 +222,68 @@
       }
     });
 
-    csvInput.addEventListener("change", async () => {
-      const file = csvInput.files[0];
+    dataInput.addEventListener("change", async () => {
+      const file = dataInput.files[0];
       if (!file) return;
       try {
-        const rows = await AppCommon.readCsvFile(file);
+        const extension = file.name.split(".").pop().toLocaleLowerCase("ko-KR");
+        let rows;
+        if (extension === "csv") {
+          rows = await AppCommon.readCsvFile(file);
+        } else {
+          const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false }).map(row =>
+            Object.fromEntries(Object.entries(row).map(([key, value]) => [key.trim(), String(value ?? "").trim()])),
+          );
+        }
         const required = RequestSplitter.columns;
-        if (!rows.length || required.some(column => !(column in rows[0]))) throw new Error("문항목록 CSV의 열을 확인해 주세요.");
+        if (!rows.length || required.some(column => !(column in rows[0]))) throw new Error("문항목록 파일의 8개 열을 확인해 주세요.");
         previewRows = rows;
         previewChecks = [...new Set(rows.map(row => row.파일명))].map(fileName => RequestSplitter.verifyRows(rows.filter(row => row.파일명 === fileName), fileName));
         renderPreview();
-        AppCommon.toast(`${rows.length}문항을 불러왔습니다.`);
+        AppCommon.toast(`${file.name}에서 ${rows.length}문항을 불러왔습니다.`);
       } catch (error) {
         AppCommon.toast(error.message, "error");
       }
     });
 
-    registerButton.addEventListener("click", () => {
-      const result = AppCommon.registerCases(previewRows, AssignmentEngine.classify);
-      renderCases();
-      AppCommon.toast(`${result.added}문항을 접수 등록했습니다.${result.skipped ? ` 중복 ${result.skipped}건 제외` : ""}`);
+    exportButton.addEventListener("click", () => {
+      const cases = AppCommon.loadCases();
+      if (!cases.length) return AppCommon.toast("내보낼 접수 기록이 없습니다.", "error");
+      const rows = cases.map(item => ({
+        파일명: item.파일명,
+        위원회: item.위원회,
+        의원: item.의원,
+        제출기한: item.제출기한,
+        문항번호: item.문항번호,
+        요구내용: item.요구내용,
+        세부항목: item.세부항목,
+        비고: item.비고,
+        처리상태: item.상태,
+        주관과: item.주관과,
+        협조과: (item.협조과 || []).join(" | "),
+        확정방법: item.확정방법,
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      worksheet["!cols"] = [24, 18, 12, 12, 10, 50, 36, 24, 12, 18, 28, 12].map(wch => ({ wch }));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "접수대장");
+      XLSX.writeFile(workbook, `국회요구자료_접수대장_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      AppCommon.toast(`${cases.length}건을 엑셀 파일로 만들었습니다.`);
+    });
+
+    registerButton.addEventListener("click", async () => {
+      registerButton.disabled = true;
+      try {
+        const result = await AppCommon.registerCases(previewRows, AssignmentEngine.classify, departments);
+        renderCases();
+        AppCommon.toast(`${result.added}문항을 접수 등록했습니다.${result.skipped ? ` 중복 ${result.skipped}건 제외` : ""}`);
+      } catch (error) {
+        AppCommon.toast(error.message, "error");
+      } finally {
+        renderPreview();
+      }
     });
 
     allocationBody.addEventListener("toggle", event => {
@@ -217,7 +304,7 @@
       details.querySelector("summary").textContent = count ? `${count}개 선택` : "선택 없음";
     });
 
-    allocationBody.addEventListener("click", event => {
+    allocationBody.addEventListener("click", async event => {
       const button = event.target.closest(".confirm-button");
       if (!button) return;
       const row = button.closest("tr");
@@ -231,22 +318,30 @@
       const loadedOptions = [...row.querySelectorAll(".assist-option input")];
       const assist = loadedOptions.length ? loadedOptions.filter(input => input.checked && input.value !== lead).map(input => input.value) : (current.협조과 || []).filter(item => item !== lead);
       const method = current.후보?.[0]?.과 === lead ? "규칙" : "수정";
-      AppCommon.updateCase(current.id, item => {
-        const now = new Date().toISOString();
-        item.상태 = "배분확정";
-        item.주관과 = lead;
-        item.협조과 = assist;
-        item.확정방법 = method;
-        item.log = [...(item.log || []), { 일시: now, 작업: "배분확정", 문항: `${item.의원}-${item.문항번호}`, 주관과: lead, 협조과: assist, 확정방법: method }];
-        return item;
-      });
-      renderCases();
-      AppCommon.toast(`${current.의원} ${current.문항번호}번 배분을 확정했습니다.`);
+      button.disabled = true;
+      try {
+        await AppCommon.applyRequest({
+          작업: "배분",
+          id: current.id,
+          주관과: lead,
+          협조과: assist,
+          확정방법: method,
+        }, departments);
+        renderCases();
+        AppCommon.toast(`${current.의원} ${current.문항번호}번 배분을 확정했습니다.`);
+      } catch (error) {
+        button.disabled = false;
+        AppCommon.toast(error.message, "error");
+      }
     });
 
     search.addEventListener("input", renderCases);
 
-    document.querySelector("#reset-button").addEventListener("click", () => {
+    const resetButton = document.querySelector("#reset-button");
+    if (AppCommon.storageInfo().mode === "server") {
+      resetButton.hidden = true;
+    }
+    resetButton.addEventListener("click", () => {
       const count = AppCommon.loadCases().length;
       if (!count) return AppCommon.toast("초기화할 저장 기록이 없습니다.", "error");
       if (!confirm(`이 브라우저에 저장된 접수·배분 기록 ${count}건을 모두 초기화할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
@@ -260,6 +355,8 @@
       const [, organization] = await Promise.all([
         AssignmentEngine.init(),
         AppCommon.loadCsv("data/A부_조직도_26개과.csv"),
+        AppCommon.initStorage(),
+        AppCommon.loadPastCases(),
       ]);
       departments = organization.map(row => row.과);
       engineReady = true;

@@ -1,0 +1,29 @@
+# 실행에 필요 없는 루트 원본·문서·시험 파일은 Vercel에 올리지 않는다.
+/.agents
+/.wrangler
+/00_문제정의
+/AI교육_API_도구
+/assets
+/data
+/부서회신
+/시스템 개발
+/원문
+/지침재료
+/__pycache__
+/소관과_추천.py
+/조직도_효과.html
+/처리지침_초안.md
+/처리지침.md
+/AGENTS.md
+/AI시대_행정문서_작성_가이드라인.hwpx
+/CONTEXT.md
+/design.md
+/org.json
+/PROGRESS.md
+/rules_보강.csv
+/split.py
+/test_api.js
+/test_common.js
+/test_engine.js
+/test_ui.js
+/to_json.js

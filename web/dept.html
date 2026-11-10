@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>현업 회신 | A부 국회 요구자료</title>
+  <script src="lib/papaparse.min.js"></script>
+  <script src="lib/xlsx.full.min.js"></script>
+  <script src="flow.js"></script>
+  <script src="common.js"></script>
+  <style>
+    .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}.department-panel{display:flex;align-items:center;gap:12px;min-width:min(100%,430px);padding:14px 16px}.department-panel label{font-size:13px;font-weight:900;white-space:nowrap}.department-select{width:100%;min-height:42px;padding:0 12px;border:1px solid #cbd8e7;border-radius:10px;background:#fff}
+    .summary-row{display:flex;gap:9px;flex-wrap:wrap;margin:22px 0}.summary-chip{padding:8px 11px;border:1px solid #dbe4ee;border-radius:999px;background:#fff;color:#52657b;font-size:12px;font-weight:800}.summary-chip strong{color:#15345a}
+    .case-list{display:grid;gap:18px}.case-card{padding:22px;animation:card-in .48s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--delay,0ms);transition:transform .35s cubic-bezier(.34,1.56,.64,1),border-color .2s}.case-card:hover{transform:translateY(-3px);border-color:#adc6e2}@keyframes card-in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+    .case-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.case-kicker{margin:0 0 6px;color:#246bce;font-size:12px;font-weight:900}.case-title{margin:0;font-size:19px;line-height:1.5}.case-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;color:#687a8e;font-size:12px}.case-meta span{padding:5px 8px;border-radius:8px;background:#f2f6fb}.status{padding:6px 9px;border-radius:999px;background:#fff4dc;color:#98590d;font-size:11px;font-weight:900;white-space:nowrap}.status.done{background:#e8f7f1;color:#157052}
+    .history-box{margin-top:14px;padding:11px 12px;border:1px solid #d8e5f2;border-radius:11px;background:#f8fbff;color:#52657b;font-size:12px}.history-box summary{cursor:pointer;font-weight:900;color:#31577f}.history-box ul{display:grid;gap:5px;margin:9px 0 0;padding-left:18px;line-height:1.45}.history-box .none{display:block;margin-top:6px;color:#7c8997}
+    .reply-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr);gap:16px;margin-top:18px}.form-box{padding:16px;border:1px solid #dbe4ee;border-radius:14px;background:#fbfcfe}.form-box h3{margin:0 0 12px;font-size:15px}.field{display:grid;gap:6px;margin-top:10px}.field label{color:#52657b;font-size:12px;font-weight:800}.field textarea,.field select{width:100%;padding:10px 11px;border:1px solid #cbd8e7;border-radius:9px;background:#fff;resize:vertical}.field.invalid textarea{border-color:#c83f52;animation:shake .32s ease}@keyframes shake{30%,70%{transform:translateX(-5px)}50%{transform:translateX(5px)}}
+    .file-pick{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px dashed #adc1d8;border-radius:11px;background:#f5f9fe}.file-pick input{position:absolute;width:1px;height:1px;opacity:0}.file-pick label{padding:8px 11px;border-radius:8px;background:#15345a;color:#fff;font-size:12px;font-weight:900;cursor:pointer}.file-state{color:#64748b;font-size:12px;line-height:1.45}.action-row{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.previous-reply{margin-top:12px;padding:9px 10px;border-radius:9px;background:#edf8f3;color:#27644f;font-size:11px;line-height:1.5}.empty-card,.loading-card{padding:46px;text-align:center;color:#718196}.loading-line{position:relative;height:4px;overflow:hidden;margin:16px auto 0;border-radius:99px;background:#e4ebf3;max-width:260px}.loading-line::after{position:absolute;inset:0 auto 0 -40%;width:38%;background:#246bce;content:"";animation:indeterminate 1.1s ease-in-out infinite}@keyframes indeterminate{to{left:110%}}
+    @media(max-width:900px){.page-head{align-items:stretch;flex-direction:column}.department-panel{min-width:0}.reply-grid{grid-template-columns:1fr}.case-head{flex-direction:column}.case-card{padding:17px}}
+    @media(prefers-reduced-motion:reduce){.case-card{animation:none}.case-card:hover{transform:none}.loading-line::after{animation:none;left:31%}.field.invalid textarea{animation:none}}
+  </style>
+</head>
+<body>
+  <div id="nav"></div>
+  <main class="page-shell">
+    <header class="page-head">
+      <div><p class="eyebrow">A부 · 현업 담당</p><h1 class="page-title">현업 회신</h1><p class="page-description">내 과에 배분된 문항만 확인하고, 회신 엑셀과 메모를 제출하거나 재배정을 요청합니다.</p></div>
+      <div class="card department-panel"><label for="department">내 과</label><select class="department-select" id="department"><option value="">과를 선택해 주세요</option></select></div>
+    </header>
+    <div class="summary-row" id="summary"></div>
+    <section class="case-list" id="case-list" aria-live="polite"><div class="card loading-card">기록을 읽고 있습니다.<div class="loading-line"></div></div></section>
+  </main>
+
+  <script>
+    AppCommon.injectBaseStyles();
+    document.querySelector("#nav").innerHTML = AppCommon.nav("dept");
+    const departmentSelect = document.querySelector("#department");
+    const caseList = document.querySelector("#case-list");
+    const summary = document.querySelector("#summary");
+    const uploaded = new Map();
+    let departments = [];
+
+    function options(selected = "") {
+      return `<option value="">선택 없음</option>${departments.map(department => `<option value="${AppCommon.escapeHtml(department)}" ${department === selected ? "selected" : ""}>${AppCommon.escapeHtml(department)}</option>`).join("")}`;
+    }
+
+    function historyHtml(item) {
+      const history = AppCommon.pastHistoryFor(item);
+      if (!history.keyword) return '<div class="history-box"><strong>과거 이력</strong><span class="none">1순위 근거 키워드가 없어 검색하지 않았습니다.</span></div>';
+      const headline = history.count ? `${history.count}건 · 주로 ${history.mainDepartment || "확인필요"}` : "0건";
+      const recent = history.recent.length
+        ? `<ul>${history.recent.map(row => `<li>${AppCommon.escapeHtml(row.접수일)} · ${AppCommon.escapeHtml(row.요구내용)} → ${AppCommon.escapeHtml(row.배분과)}</li>`).join("")}</ul>`
+        : '<span class="none">같은 근거 키워드가 든 과거 요구가 없습니다.</span>';
+      return `<details class="history-box"><summary>과거 이력 · ${AppCommon.escapeHtml(history.keyword)} · ${AppCommon.escapeHtml(headline)}</summary>${recent}</details>`;
+    }
+
+    function latestReply(item, department) {
+      return [...(item.과별회신 || [])].reverse().find(reply => reply.과 === department);
+    }
+
+    function render() {
+      const department = departmentSelect.value;
+      if (!department) {
+        summary.innerHTML = '<span class="summary-chip">내 과를 선택하면 배분 문항이 표시됩니다.</span>';
+        caseList.innerHTML = '<div class="card empty-card">상단에서 내 과를 선택해 주세요.</div>';
+        return;
+      }
+      const assigned = AppCommon.loadCases().filter(item =>
+        item.주관과 === department || (item.협조과 || []).includes(department),
+      );
+      const waiting = assigned.filter(item => ["배분확정", "회신중", "보완요청"].includes(item.상태)).length;
+      summary.innerHTML = `<span class="summary-chip">배분 <strong>${assigned.length}건</strong></span><span class="summary-chip">회신 가능 <strong>${waiting}건</strong></span><span class="summary-chip">저장 위치 <strong>${AppCommon.escapeHtml(AppCommon.storageInfo().label)}</strong></span>`;
+      if (!assigned.length) {
+        caseList.innerHTML = '<div class="card empty-card">이 과에 배분된 문항이 없습니다.</div>';
+        return;
+      }
+      caseList.innerHTML = assigned.map((item, index) => {
+        const canAct = ["배분확정", "회신중", "보완요청"].includes(item.상태);
+        const previous = latestReply(item, department);
+        const file = uploaded.get(item.id);
+        return `<article class="card case-card" style="--delay:${Math.min(index, 7) * 55}ms" data-id="${AppCommon.escapeHtml(item.id)}">
+          <header class="case-head"><div><p class="case-kicker">${AppCommon.escapeHtml(item.의원)} · ${AppCommon.escapeHtml(item.문항번호)}번</p><h2 class="case-title">${AppCommon.escapeHtml(item.요구내용)}</h2><div class="case-meta"><span>주관 ${AppCommon.escapeHtml(item.주관과)}</span>${item.협조과?.length ? `<span>협조 ${AppCommon.escapeHtml(item.협조과.join(" · "))}</span>` : ""}<span>기한 ${AppCommon.escapeHtml(item.제출기한 || "미정")}</span></div></div><span class="status ${item.상태 === "회신완료" ? "done" : ""}">${AppCommon.escapeHtml(item.상태)}</span></header>
+          ${historyHtml(item)}
+          <div class="reply-grid">
+            <section class="form-box"><h3>회신 제출</h3><div class="file-pick"><span class="file-state">${file ? `${AppCommon.escapeHtml(file.파일명)} · ${file.행.length}행 준비` : "회신 엑셀을 선택해 주세요."}</span><label>회신 엑셀 올리기<input class="reply-file" type="file" accept=".xlsx,.xls"></label></div><div class="field"><label>메모</label><textarea class="reply-memo" rows="3" placeholder="회신 내용이나 확인 사항을 적어 주세요."></textarea></div>${previous ? `<div class="previous-reply">최근 제출: ${AppCommon.escapeHtml(previous.파일명 || "메모 회신")} · ${AppCommon.escapeHtml(previous.일시)}</div>` : ""}<div class="action-row"><button class="button reply-submit" type="button" data-ripple ${canAct ? "" : "disabled"}>회신 제출</button></div></section>
+            <section class="form-box"><h3>재배정 요청</h3><div class="field reason-field"><label>사유(필수)</label><textarea class="reassign-reason" rows="3" placeholder="현재 과 소관이 아닌 이유를 적어 주세요."></textarea></div><div class="field"><label>희망 과</label><select class="reassign-target">${options()}</select></div><div class="action-row"><button class="button secondary reassign-submit" type="button" data-ripple ${canAct ? "" : "disabled"}>재배정 요청</button></div></section>
+          </div>
+        </article>`;
+      }).join("");
+      AppCommon.setupEffects();
+    }
+
+    async function readReply(file) {
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
+      if (matrix.length < 2) throw new Error("회신 엑셀은 1행 요구 문구와 2행 머리글이 필요합니다.");
+      const headers = matrix[1].map(value => String(value || "").trim());
+      if (!headers.some(Boolean)) throw new Error("회신 엑셀 2행의 머리글을 확인해 주세요.");
+      const rows = matrix.slice(2).filter(row => row.some(value => String(value || "").trim())).map(row =>
+        Object.fromEntries(headers.map((header, index) => [header || `열${index + 1}`, String(row[index] ?? "").trim()])),
+      );
+      return { 파일명: file.name, 행: rows };
+    }
+
+    caseList.addEventListener("change", async event => {
+      if (!event.target.matches(".reply-file")) return;
+      const card = event.target.closest(".case-card");
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        uploaded.set(card.dataset.id, await readReply(file));
+        render();
+        AppCommon.toast(`${file.name}을 회신 자료로 준비했습니다.`);
+      } catch (error) {
+        uploaded.delete(card.dataset.id);
+        AppCommon.toast(error.message, "error");
+      }
+    });
+
+    caseList.addEventListener("click", async event => {
+      const card = event.target.closest(".case-card");
+      if (!card) return;
+      const department = departmentSelect.value;
+      if (event.target.closest(".reply-submit")) {
+        const button = event.target.closest(".reply-submit");
+        const file = uploaded.get(card.dataset.id);
+        const memo = card.querySelector(".reply-memo").value.trim();
+        if (!file && !memo) return AppCommon.toast("회신 엑셀 또는 메모를 입력해 주세요.", "error");
+        button.disabled = true;
+        try {
+          await AppCommon.applyRequest({ 작업: "회신", id: card.dataset.id, 과: department, 파일명: file?.파일명 || "", 행: file?.행 || [], 메모 }, departments);
+          uploaded.delete(card.dataset.id);
+          render();
+          AppCommon.toast("회신을 제출했습니다.");
+        } catch (error) {
+          button.disabled = false;
+          AppCommon.toast(error.message, "error");
+        }
+      }
+      if (event.target.closest(".reassign-submit")) {
+        const button = event.target.closest(".reassign-submit");
+        const field = card.querySelector(".reason-field");
+        const reason = card.querySelector(".reassign-reason").value.trim();
+        const desired = card.querySelector(".reassign-target").value;
+        field.classList.toggle("invalid", !reason);
+        if (!reason) return AppCommon.toast("재배정 사유를 입력해 주세요.", "error");
+        button.disabled = true;
+        try {
+          await AppCommon.applyRequest({ 작업: "재배정요청", id: card.dataset.id, 과: department, 사유: reason, 희망과: desired }, departments);
+          render();
+          AppCommon.toast("재배정 요청을 기록했습니다.");
+        } catch (error) {
+          button.disabled = false;
+          AppCommon.toast(error.message, "error");
+        }
+      }
+    });
+
+    departmentSelect.addEventListener("change", render);
+
+    async function start() {
+      try {
+        const [organization] = await Promise.all([
+          AppCommon.loadCsv("data/A부_조직도_26개과.csv"),
+          AppCommon.initStorage(),
+          AppCommon.loadPastCases(),
+        ]);
+        departments = organization.map(row => row.과);
+        departmentSelect.innerHTML = `<option value="">과를 선택해 주세요</option>${departments.map(department => `<option value="${AppCommon.escapeHtml(department)}">${AppCommon.escapeHtml(department)}</option>`).join("")}`;
+        render();
+      } catch (error) {
+        caseList.innerHTML = `<div class="card empty-card">${AppCommon.escapeHtml(error.message)}</div>`;
+        AppCommon.toast(error.message, "error");
+      }
+      AppCommon.setupEffects();
+    }
+    start();
+  </script>
+</body>
+</html>
