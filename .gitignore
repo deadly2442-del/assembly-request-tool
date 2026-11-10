@@ -1,0 +1,32 @@
+# 비밀정보와 로컬 설정
+.env
+.env.*
+!.env.example
+
+# 의존성·실행 캐시
+node_modules/
+__pycache__/
+*.py[cod]
+
+# 임시·결과 파일
+output/
+outputs/
+result/
+results/
+결과/
+*_결과.*
+build/
+dist/
+coverage/
+tmp/
+temp/
+*.log
+*.tmp
+
+# 공개 저장소에서 제외할 원본·문서 파일
+99_완성본_잠금/
+원문/
+부서회신/
+*.xlsx
+*.xls
+*.hwpx

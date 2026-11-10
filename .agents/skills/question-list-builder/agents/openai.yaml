@@ -1,0 +1,4 @@
+interface:
+  display_name: "문항목록 만들기"
+  short_description: "자료요구서 PDF에서 문항목록과 split.py를 생성"
+  default_prompt: "Use $question-list-builder to create split.py and a verified data/문항목록.csv from the source PDFs."
