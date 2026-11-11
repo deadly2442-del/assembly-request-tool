@@ -133,7 +133,7 @@
         if (file?.확인필요.length && !confirm(`확인필요 ${file.확인필요.length}건이 있습니다. 내용을 확인한 뒤 회신을 제출할까요?`)) return;
         button.disabled = true;
         try {
-          await AppCommon.applyRequest({ 작업: "회신", id: card.dataset.id, 과: department, 파일명: file?.파일명 || "", 요구표시: file?.요구표시 || "", 머리글: file?.머리글 || [], 행: file?.행 || [], 확인필요: file?.확인필요 || [], 메모 }, departments);
+          await AppCommon.applyRequest({ 작업: "회신", id: card.dataset.id, 과: department, 파일명: file?.파일명 || "", 요구표시: file?.요구표시 || "", 머리글: file?.머리글 || [], 행: file?.행 || [], 확인필요: file?.확인필요 || [], 메모: memo }, departments);
           uploaded.delete(card.dataset.id);
           render();
           AppCommon.toast("회신을 제출했습니다.");

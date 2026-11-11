@@ -66,6 +66,31 @@ function testCollectExports(html) {
   assert.match(links[1].download, /제출본.*\.md$/);
 }
 
+async function testDeptReplySubmit(html) {
+  const start = html.indexOf('    caseList.addEventListener("click", async event => {');
+  const end = html.indexOf('    departmentSelect.addEventListener("change", render);', start);
+  assert.ok(start >= 0 && end > start, "현업 회신 버튼 처리 누락");
+  const requests = [];
+  const caseList = { addEventListener(type, handler) { if (type === "click") this.clickHandler = handler; } };
+  const uploaded = new Map();
+  const card = { dataset: { id: "시험-1" }, querySelector: () => ({ value: "  확인 바랍니다  " }) };
+  const button = { disabled: false };
+  const event = { target: { closest: selector => selector === ".case-card" ? card : selector === ".reply-submit" ? button : null } };
+  vm.runInNewContext(html.slice(start, end), {
+    caseList, uploaded, departmentSelect: { value: "시험과" }, departments: ["시험과"],
+    AppCommon: { applyRequest: async request => requests.push(request), toast: () => {} },
+    render: () => {}, confirm: () => true,
+  });
+  await caseList.clickHandler(event);
+  assert.equal(requests[0].작업, "회신");
+  assert.equal(requests[0].메모, "확인 바랍니다");
+  assert.equal(requests[0].파일명, "");
+  uploaded.set("시험-1", { 파일명: "회신.xlsx", 요구표시: "요구", 머리글: ["항목"], 행: [{ 항목: "값" }], 확인필요: [] });
+  await caseList.clickHandler(event);
+  assert.equal(requests[1].메모, "확인 바랍니다");
+  assert.equal(requests[1].파일명, "회신.xlsx");
+}
+
 async function main() {
   const index = read("index.html");
   const assign = read("assign.html");
@@ -91,6 +116,7 @@ async function main() {
   assert.ok(collect.indexOf('id="status-title"') < collect.indexOf('id="inspect-title"'), "현황·제출본이 검사 목록보다 먼저 보여야 합니다.");
   assert.ok(collect.includes('<details class="case-details">'), "문항별 검사 내용은 접어서 보여야 합니다.");
   testCollectExports(collect);
+  await testDeptReplySubmit(dept);
 
   console.log("화면 구조 시험 통과: 시작·배분·현업 회신·취합 스크립트 문법과 필수 항목 확인");
 }
