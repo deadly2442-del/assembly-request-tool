@@ -47,6 +47,8 @@ async function main() {
   ["검사·확정", "보완요청", "확인 완료", "제출본 엑셀", "제출본 Markdown", "검증용 접수대장"].forEach((label) =>
     assert.ok(collect.includes(label), `취합 화면 필수 항목 누락: ${label}`),
   );
+  assert.ok(collect.indexOf('id="status-title"') < collect.indexOf('id="inspect-title"'), "현황·제출본이 검사 목록보다 먼저 보여야 합니다.");
+  assert.ok(collect.includes('<details class="case-details">'), "문항별 검사 내용은 접어서 보여야 합니다.");
 
   console.log("화면 구조 시험 통과: 시작·배분·현업 회신·취합 스크립트 문법과 필수 항목 확인");
 }
