@@ -20,9 +20,9 @@
   <main class="page-shell">
     <header class="head" data-reveal><div><p class="eyebrow">국회 총괄 담당</p><h1 class="page-title">취합·검사·확정</h1><p class="page-description">과별 회신을 모아 확인필요를 살피고, 확인한 문항만 제출본으로 만듭니다.</p><nav class="quick-links" aria-label="취합 화면 바로가기"><a href="#status-title">현황·제출본</a><a href="#registry-title">접수대장 점검</a><a href="#inspect-title">검사·확정</a></nav></div><div class="head-note">확정은 업무상 잠금이며 공식 결재가 아닙니다.</div></header>
     <section class="card section" data-reveal aria-labelledby="status-title">
-      <h2 id="status-title">현황·제출본</h2><p class="muted">상태와 과별 배분 건수를 확인하고, 업무상 확정된 문항의 제출본을 내려받습니다.</p>
+      <h2 id="status-title">현황·제출본</h2><p class="muted">확정 전에는 검토용 초안을, 확정된 문항이 생기면 그 문항만 담은 제출본을 내려받습니다.</p>
       <div id="status-counts" class="stats"></div>
-      <div class="export-row"><button class="button" id="export-xlsx" type="button" disabled>제출본 엑셀</button><button class="button secondary" id="export-md" type="button" disabled>제출본 Markdown</button><span id="export-count" class="muted"></span></div>
+      <div class="export-row"><button class="button" id="export-xlsx" type="button">검토용 초안 엑셀</button><button class="button secondary" id="export-md" type="button">검토용 초안 Markdown</button><span id="export-count" class="muted"></span></div>
       <div class="charts"><div class="chart-box"><h3>상태별 건수</h3><canvas id="status-chart" role="img" aria-label="상태별 문항 건수 차트"></canvas></div><div class="chart-box"><h3>과별 배분 건수</h3><canvas id="department-chart" role="img" aria-label="과별 배분 건수 차트"></canvas></div></div>
     </section>
     <section class="card section" data-reveal aria-labelledby="registry-title">
@@ -105,9 +105,12 @@
       statusChart = updateChart(statusChart, document.querySelector("#status-chart"), { type: "doughnut", data: { labels: states, datasets: [{ data: counts, backgroundColor: ["#e6b35c", "#4986cc", "#6ca9da", "#48b6a3", "#c98e66", "#db926f", "#279b70"] }] }, options: { responsive: true, maintainAspectRatio: false, animation: reduced ? false : { duration: 450 }, plugins: { legend: { position: "right" } } } });
       departmentChart = updateChart(departmentChart, document.querySelector("#department-chart"), { type: "bar", data: { labels: active.map(item => item.dept), datasets: [{ label: "배분 건수", data: active.map(item => item.count), backgroundColor: "#2d78bd" }] }, options: { responsive: true, maintainAspectRatio: false, indexAxis: "y", animation: reduced ? false : { duration: 450 }, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } } });
       const confirmed = cases.filter(item => item.상태 === "확정").length;
-      document.querySelector("#export-xlsx").disabled = !confirmed;
-      document.querySelector("#export-md").disabled = !confirmed;
-      document.querySelector("#export-count").textContent = `확정 ${confirmed}건만 포함`;
+      const draft = confirmed === 0;
+      document.querySelector("#export-xlsx").textContent = `${draft ? "검토용 초안" : "제출본"} 엑셀`;
+      document.querySelector("#export-md").textContent = `${draft ? "검토용 초안" : "제출본"} Markdown`;
+      document.querySelector("#export-count").textContent = draft
+        ? `확정 0건 · 현재 ${cases.length}건을 검토용 초안으로 내려받습니다.`
+        : `확정 ${confirmed}건만 제출본에 포함합니다.`;
       AppCommon.setupEffects();
     }
     list.addEventListener("click", async event => {
@@ -151,29 +154,48 @@
         document.querySelector("#registry-result").innerHTML = issues.length ? tableHtml(["행", "항목", "내용"], issues, "확인필요 없음") : '<div class="check-list ok">점검 결과 확인필요가 없습니다.</div>';
       } catch (error) { document.querySelector("#registry-result").innerHTML = ""; AppCommon.toast(error.message, "error"); }
     });
-    function confirmedCases() { return AppCommon.loadCases().filter(item => item.상태 === "확정"); }
+    function exportSelection() {
+      const cases = AppCommon.loadCases();
+      const confirmed = cases.filter(item => item.상태 === "확정");
+      return { cases: confirmed.length ? confirmed : cases, draft: confirmed.length === 0 };
+    }
+    function downloadDate() {
+      return new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    }
     function exportWorkbook() {
-      const cases = confirmedCases();
-      if (!cases.length) return;
+      const { cases, draft } = exportSelection();
+      if (!cases.length) return AppCommon.toast("내려받을 문항이 없습니다.", "error");
       const book = XLSX.utils.book_new();
+      if (draft) XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([
+        ["검토용 초안"],
+        ["업무상 확정되지 않은 문항이 포함되어 있습니다. 이 파일을 국회 제출본으로 사용하지 마세요."],
+        ["검사·확정 화면에서 확인필요를 살핀 뒤 사람이 확정해야 합니다."],
+      ]), "안내");
       const summary = cases.map(item => ({ 위원회: item.위원회, 의원: item.의원, 문항번호: item.문항번호, 요구내용: item.요구내용, 주관과: item.주관과, 협조과: (item.협조과 || []).join(", "), 제출기한: item.제출기한, 상태: item.상태, 확정코멘트: item.확정코멘트 }));
-      XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(summary), "제출목록");
+      XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(summary), draft ? "검토목록" : "제출목록");
       cases.forEach((item, index) => {
         const { headers, rows } = merged(item, latestReplies(item));
-        const matrix = [[`요구: ${item.의원} 문항${item.문항번호} ${item.요구내용}`], headers, ...rows.map(row => headers.map(header => row[header] ?? ""))];
+        const matrix = [
+          ...(draft ? [["검토용 초안 · 확정 전 제출 금지"]] : []),
+          [`요구: ${item.의원} 문항${item.문항번호} ${item.요구내용}`],
+          headers,
+          ...rows.map(row => headers.map(header => row[header] ?? "")),
+        ];
         XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet(matrix), `문항${index + 1}`);
       });
-      XLSX.writeFile(book, `국회요구자료_제출본_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      XLSX.writeFile(book, `국회요구자료_${draft ? "검토용_초안" : "제출본"}_${downloadDate()}.xlsx`);
     }
     function markdownCell(value) { return String(value ?? "").replaceAll("|", "\\|").replaceAll("\n", "<br>"); }
     function exportMarkdown() {
-      const cases = confirmedCases();
-      if (!cases.length) return;
-      const lines = ["# 국회 요구자료 제출본", "", "※ 업무상 확정 문항만 포함합니다. 공식 결재·제출은 별도로 진행합니다.", "", "## 제출목록", "", "| 의원 | 문항 | 요구내용 | 주관과 | 협조과 |", "|---|---|---|---|---|"];
+      const { cases, draft } = exportSelection();
+      if (!cases.length) return AppCommon.toast("내려받을 문항이 없습니다.", "error");
+      const lines = [draft ? "# 국회 요구자료 검토용 초안" : "# 국회 요구자료 제출본", "", draft
+        ? "※ 업무상 확정되지 않은 문항이 포함되어 있습니다. 확인필요를 점검하고 사람이 확정하기 전에는 국회 제출본으로 사용하지 마세요."
+        : "※ 업무상 확정 문항만 포함합니다. 공식 결재·제출은 별도로 진행합니다.", "", draft ? "## 검토목록" : "## 제출목록", "", "| 의원 | 문항 | 요구내용 | 주관과 | 협조과 |", "|---|---|---|---|---|"];
       cases.forEach(item => lines.push(`| ${[item.의원, item.문항번호, item.요구내용, item.주관과, (item.협조과 || []).join(", ")].map(markdownCell).join(" | ")} |`));
       cases.forEach(item => {
         const { headers, rows } = merged(item, latestReplies(item));
-        lines.push("", `## ${item.의원} · ${item.문항번호}번`, "", item.요구내용, "", `확정 코멘트: ${item.확정코멘트}`, "");
+        lines.push("", `## ${item.의원} · ${item.문항번호}번`, "", item.요구내용, "", `상태: ${item.상태}`, `확정 코멘트: ${item.확정코멘트 || "없음"}`, "");
         if (rows.length) {
           lines.push(`| ${headers.map(markdownCell).join(" | ")} |`, `| ${headers.map(() => "---").join(" | ")} |`);
           rows.forEach(row => lines.push(`| ${headers.map(header => markdownCell(row[header])).join(" | ")} |`));
@@ -182,8 +204,10 @@
       const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/markdown;charset=utf-8" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `국회요구자료_제출본_${new Date().toISOString().slice(0, 10)}.md`;
+      link.download = `국회요구자료_${draft ? "검토용_초안" : "제출본"}_${downloadDate()}.md`;
+      document.body.append(link);
       link.click();
+      link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     document.querySelector("#export-xlsx").addEventListener("click", exportWorkbook);
