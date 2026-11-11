@@ -333,7 +333,7 @@
           if (!response.ok) throw new Error(payload?.error || `AI 추천에 실패했습니다: ${response.status}`);
           aiCandidates.set(current.id, Array.isArray(payload?.후보) ? payload.후보 : []);
           renderCases();
-          AppCommon.toast(payload?.해당없음 ? "AI가 적합한 과 후보를 찾지 못했습니다. 총괄 담당자가 직접 확인해 주세요." : "AI 후보를 표시했습니다. 추천을 참고해 주관 과를 선택해 주세요.");
+          AppCommon.toast(payload?.해당없음 ? "AI가 후보를 제시하지 않았습니다. 요구내용을 확인하고 주관 과를 직접 선택해 주세요." : "AI 후보를 표시했습니다. 추천을 참고해 주관 과를 선택해 주세요.");
         } catch (error) {
           aiButton.disabled = false;
           AppCommon.toast(error.message, "error");

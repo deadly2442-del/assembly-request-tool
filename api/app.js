@@ -78,12 +78,21 @@ async function recommendWithAI(requestBody, org, fetchImpl = fetch) {
   if (!requirement) throw new ApiError(400, "요구내용을 입력해 주세요.");
 
   const departments = departmentNames(org);
+  const departmentContext = org
+    .filter((item) => item && typeof item === "object" && departments.includes(String(item.과 || "").trim()))
+    .map((item) => ({
+      과: String(item.과).trim(),
+      실국: String(item.실국 || "").trim(),
+      대표키워드: Array.isArray(item.대표키워드) ? item.대표키워드.map((value) => String(value).trim()).filter(Boolean) : [],
+    }));
   const systemPrompt = [
     "당신은 국회 요구자료 문항의 소관 과 후보를 추천하는 보조자입니다.",
-    "아래 허용 과 목록 안에서만 0개부터 최대 3개까지 추천하고, 각 후보의 근거는 한국어 한 문장으로 작성합니다.",
-    "요구내용에 맞는 후보가 없으면 후보는 빈 배열, 해당없음은 true로 답합니다. 후보가 있으면 해당없음은 false로 답합니다.",
+    "아래 조직도의 실국과 대표키워드는 담당 업무를 이해하기 위한 참고 자료입니다. 요구내용과 키워드가 정확히 일치하지 않아도 업무 성격이 가까운 과를 찾아 보세요.",
+    "허용 과 목록 안에서 관련성이 높은 후보를 최대 3개 추천하고, 각 후보의 근거는 추론임을 알 수 있게 한국어 한 문장으로 작성합니다. 최종 배분은 사람이 결정합니다.",
+    "업무 성격상 가까운 과가 하나라도 있으면 후보를 제시하세요. 조직도 전체를 살펴도 관련 과를 찾을 수 없을 때만 후보를 빈 배열로 하고 해당없음을 true로 답합니다.",
     "반드시 JSON 객체만 응답하고 다음 형식을 지킵니다: {\"후보\":[{\"과\":\"허용 과 이름\",\"근거\":\"한 문장\"}],\"해당없음\":false}",
     `허용 과 목록: ${JSON.stringify(departments)}`,
+    `조직도 업무 참고: ${JSON.stringify(departmentContext)}`,
   ].join("\n");
 
   let response;
@@ -139,7 +148,10 @@ async function recommendWithAI(requestBody, org, fetchImpl = fetch) {
     candidates.push({ 과: department, 근거: reason });
     if (candidates.length === 3) break;
   }
-  if (result.해당없음 || !candidates.length) return { 후보: [], 해당없음: true };
+  if (!candidates.length && !result.해당없음) {
+    throw new ApiError(502, "AI가 조직도 안의 유효한 과 후보를 반환하지 않았습니다. 다시 시도하거나 총괄 담당자가 확인해 주세요.");
+  }
+  if (!candidates.length) return { 후보: [], 해당없음: true };
   return { 후보: candidates, 해당없음: false };
 }
 
