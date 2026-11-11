@@ -29,10 +29,12 @@ async function main() {
   const index = read("index.html");
   const assign = read("assign.html");
   const dept = read("dept.html");
+  const collect = read("collect.html");
 
   await parseScripts("index.html", index);
   await parseScripts("assign.html", assign);
   await parseScripts("dept.html", dept);
+  await parseScripts("collect.html", collect);
 
   ["내 과", "회신 엑셀 올리기", "회신 제출", "재배정 요청", "사유(필수)", "희망 과"].forEach((label) =>
     assert.ok(dept.includes(label), `현업 화면 필수 항목 누락: ${label}`),
@@ -41,8 +43,12 @@ async function main() {
     assert.ok(assign.includes(label), `배분 화면 필수 항목 누락: ${label}`),
   );
   assert.ok(index.includes('href="dept.html"'));
+  assert.ok(index.includes('href="collect.html"'));
+  ["검사·확정", "보완요청", "확인 완료", "제출본 엑셀", "제출본 Markdown", "검증용 접수대장"].forEach((label) =>
+    assert.ok(collect.includes(label), `취합 화면 필수 항목 누락: ${label}`),
+  );
 
-  console.log("화면 구조 시험 통과: 시작·배분·현업 회신 스크립트 문법과 필수 항목 확인");
+  console.log("화면 구조 시험 통과: 시작·배분·현업 회신·취합 스크립트 문법과 필수 항목 확인");
 }
 
 main().catch((error) => {

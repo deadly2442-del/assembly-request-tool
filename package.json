@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "test": "node test_engine.js && node test_api.js && node test_common.js && node --experimental-vm-modules test_ui.js",
+    "test": "node test_engine.js && node test_api.js && node test_common.js && node test_validate.js && node --experimental-vm-modules test_ui.js",
+    "test:validate": "node test_validate.js",
     "test:api": "node test_api.js",
     "test:common": "node test_common.js",
     "test:ui": "node --experimental-vm-modules test_ui.js"

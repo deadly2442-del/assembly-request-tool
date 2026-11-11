@@ -185,7 +185,7 @@
       ["index", "시작 화면", "index.html", false],
       ["assign", "배분", "assign.html", false],
       ["dept", "현업 회신", "dept.html", false],
-      ["collect", "취합", "#", true],
+      ["collect", "취합", "collect.html", false],
     ];
     const info = storageInfo();
     return `<nav class="top-nav" aria-label="주요 화면"><a class="brand" href="index.html"><span>A</span> 국회 요구자료</a><div class="nav-side"><span class="storage-mode ${info.mode}" title="${escapeHtml(info.detail)}"><i></i>${escapeHtml(info.label)}</span><div class="nav-links">${items

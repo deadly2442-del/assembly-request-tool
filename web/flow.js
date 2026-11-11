@@ -105,10 +105,22 @@
     return replies.map((reply) => ({
       과: text(reply?.과),
       파일명: text(reply?.파일명),
+      요구표시: text(reply?.요구표시),
+      머리글: Array.isArray(reply?.머리글) ? reply.머리글.map(text) : [],
       행: cleanRows(reply?.행),
+      확인필요: cleanIssues(reply?.확인필요),
       메모: text(reply?.메모),
       일시: text(reply?.일시),
     }));
+  }
+
+  function cleanIssues(items) {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => ({
+      항목: text(item?.항목),
+      내용: text(item?.내용),
+      행: Number.isInteger(Number(item?.행)) ? Number(item.행) : 0,
+    })).filter((item) => item.항목 && item.내용);
   }
 
   function cleanReassignments(items) {
@@ -128,6 +140,7 @@
       과: text(item?.과),
       사유: text(item?.사유),
       일시: text(item?.일시),
+      기준회신수: Number.isInteger(Number(item?.기준회신수)) ? Number(item.기준회신수) : 0,
     }));
   }
 
@@ -266,10 +279,16 @@
     if (!assigned.includes(department)) {
       throw new FlowError(403, `${department}는 이 문항의 담당 과가 아닙니다.`);
     }
+    if (item.상태 === "보완요청" && item.보완.at(-1)?.과 !== department) {
+      throw new FlowError(403, "보완요청을 받은 과만 다시 회신할 수 있습니다.");
+    }
     const replyItem = {
       과: department,
       파일명: text(request.파일명),
+      요구표시: text(request.요구표시),
+      머리글: Array.isArray(request.머리글) ? request.머리글.map(text) : [],
       행: cleanRows(request.행),
+      확인필요: cleanIssues(request.확인필요),
       메모: text(request.메모),
       일시: now,
     };
@@ -304,6 +323,43 @@
     return item;
   }
 
+  function requestComplement(db, request, departments, now) {
+    const { item } = requireCase(db, request);
+    requireState(item, ["회신중", "회신완료"], "보완요청");
+    const department = requireDepartment(request.과, departments, "보완 대상 과");
+    if (!assignedDepartments(item).includes(department)) {
+      throw new FlowError(403, `${department}는 이 문항의 담당 과가 아닙니다.`);
+    }
+    if (!(item.과별회신 || []).some((replyItem) => replyItem.과 === department)) {
+      throw new FlowError(409, `${department}의 회신이 없어 보완을 요청할 수 없습니다.`);
+    }
+    const reason = text(request.사유);
+    if (!reason) throw new FlowError(400, "보완요청 사유가 필요합니다.");
+    const history = { 과: department, 사유: reason, 일시: now, 기준회신수: item.과별회신.length };
+    item.보완 = [...(item.보완 || []), history];
+    item.상태 = "보완요청";
+    item.수정일시 = now;
+    appendLog(item, "보완요청", request, now, { 과: department, 사유: reason });
+    return item;
+  }
+
+  function confirm(db, request, now) {
+    const { item } = requireCase(db, request);
+    requireState(item, ["회신완료"], "확정");
+    const comment = text(request.확정코멘트);
+    if (!comment) throw new FlowError(400, "확정 코멘트가 필요합니다.");
+    const assigned = assignedDepartments(item);
+    if (!assigned.length || !assigned.every((department) =>
+      item.과별회신.some((replyItem) => replyItem.과 === department))) {
+      throw new FlowError(409, "모든 담당 과의 회신을 확인해 주세요.");
+    }
+    item.상태 = "확정";
+    item.확정코멘트 = comment;
+    item.수정일시 = now;
+    appendLog(item, "확정", request, now, { 사유: comment });
+    return item;
+  }
+
   function apply(db, request, organization) {
     if (!request || typeof request !== "object" || Array.isArray(request)) {
       throw new FlowError(400, "JSON 요청 본문이 필요합니다.");
@@ -317,6 +373,8 @@
     else if (action === "배분") item = assign(nextDb, request, departments, now);
     else if (action === "회신") item = reply(nextDb, request, departments, now);
     else if (action === "재배정요청") item = requestReassignment(nextDb, request, departments, now);
+    else if (action === "보완요청") item = requestComplement(nextDb, request, departments, now);
+    else if (action === "확정") item = confirm(nextDb, request, now);
     else throw new FlowError(400, `${action || "빈 작업"}은(는) 현재 지원하지 않는 작업입니다.`);
     return { db: nextDb, item: copy(item) };
   }
