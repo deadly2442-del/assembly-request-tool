@@ -46,6 +46,90 @@ async function invoke(handler, method, body) {
   return result;
 }
 
+function fakeOpenAIResponse(content, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    async json() {
+      return { choices: [{ message: { content: typeof content === "string" ? content : JSON.stringify(content) } }] };
+    },
+  };
+}
+
+async function testAiRecommendations() {
+  const originalKey = process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY = "test-only-key";
+  try {
+    const noStorage = { async read() { throw new Error("AI추천은 저장소를 읽지 않아야 합니다."); }, async write() { throw new Error("AI추천은 저장소에 쓰지 않아야 합니다."); } };
+    let capturedRequest;
+    const withCandidates = createHandler({
+      storage: noStorage,
+      org: organization,
+      async fetchImpl(url, options) {
+        capturedRequest = { url, options };
+        return fakeOpenAIResponse({
+          후보: [
+            { 과: "없는과", 근거: "조직도 밖 예시입니다." },
+            { 과: "디지털정책과", 근거: "디지털전환 사업의 총괄 정책을 담당합니다." },
+            { 과: "정보화담당관", 근거: "정보시스템 구축과 운영을 담당합니다." },
+            { 과: "데이터정책과", 근거: "공공데이터의 정책과 개방을 담당합니다." },
+            { 과: "기획재정담당관", 근거: "네 번째 후보는 제외되어야 합니다." },
+          ],
+          해당없음: false,
+        });
+      },
+    });
+    let response = await invoke(withCandidates, "POST", { 작업: "AI추천", 요구내용: "최근 3년간 디지털전환 사업 추진 실적" });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, {
+      후보: [
+        { 과: "디지털정책과", 근거: "디지털전환 사업의 총괄 정책을 담당합니다." },
+        { 과: "정보화담당관", 근거: "정보시스템 구축과 운영을 담당합니다." },
+        { 과: "데이터정책과", 근거: "공공데이터의 정책과 개방을 담당합니다." },
+      ],
+      해당없음: false,
+    });
+    assert.equal(capturedRequest.url, "https://api.openai.com/v1/chat/completions");
+    const sentBody = JSON.parse(capturedRequest.options.body);
+    assert.equal(sentBody.model, "gpt-4o-mini");
+    assert.equal(sentBody.temperature, 0);
+    assert.deepEqual(sentBody.response_format, { type: "json_object" });
+    assert.match(sentBody.messages[0].content, /허용 과 목록/);
+    assert.match(sentBody.messages[0].content, /디지털정책과/);
+    assert.equal(sentBody.messages[1].content, "최근 3년간 디지털전환 사업 추진 실적");
+
+    const noDepartment = createHandler({
+      storage: noStorage,
+      async fetchImpl() {
+        return fakeOpenAIResponse({ 후보: [], 해당없음: true });
+      },
+    });
+    response = await invoke(noDepartment, "POST", { 작업: "AI추천", 요구내용: "소관 과를 찾기 어려운 요구" });
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body, { 후보: [], 해당없음: true });
+
+    const invalidJson = createHandler({
+      storage: noStorage,
+      async fetchImpl() {
+        return fakeOpenAIResponse("응답 형식이 잘못되었습니다.");
+      },
+    });
+    response = await invoke(invalidJson, "POST", { 작업: "AI추천", 요구내용: "디지털 정책 현황" });
+    assert.equal(response.status, 502);
+    assert.match(response.body.error, /AI 응답 형식/);
+
+    delete process.env.OPENAI_API_KEY;
+    const missingKey = createHandler({ storage: noStorage, async fetchImpl() { throw new Error("키가 없으면 호출하면 안 됩니다."); } });
+    response = await invoke(missingKey, "POST", { 작업: "AI추천", 요구내용: "디지털 정책 현황" });
+    assert.equal(response.status, 500);
+    assert.match(response.body.error, /OPENAI_API_KEY/);
+    console.log("AI 추천 시험 통과: 허용 과·최대 3개 필터, 해당없음, 잘못된 JSON 거부, 키 누락 안내");
+  } finally {
+    if (originalKey === undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY = originalKey;
+  }
+}
+
 async function main() {
   const storage = fakeStorage();
   const handler = createHandler({ storage, org: organization });
@@ -168,6 +252,7 @@ async function main() {
   console.log("API 시험 통과: GET, 접수, 배분, 회신중·회신완료, 재배정요청");
   console.log("오류 시험 통과: 순서 409, 조직도 밖 과 400, 담당 아닌 과 403, 사유 누락 400");
   console.log(`가짜 저장소 결과: ${response.body.length}문항, 저장 ${storage.writes()}회`);
+  await testAiRecommendations();
 }
 
 main().catch((error) => {
